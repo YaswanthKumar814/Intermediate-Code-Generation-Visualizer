@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 from pathlib import Path
 
 from graphviz import Digraph
+from graphviz.backend import ExecutableNotFound
 
 from ast_nodes import ASTNode
 
@@ -29,8 +32,10 @@ class ASTVisualizer:
 
     def render_ast(self, ast_root: ASTNode, output_path: str | Path) -> Path:
         """Render the AST graph to a file and return the generated file path."""
+        self._ensure_graphviz_available()
         graph = self.build_graph(ast_root)
         output_base = Path(output_path)
+        output_base.parent.mkdir(parents=True, exist_ok=True)
         rendered_path = graph.render(filename=output_base.stem, directory=output_base.parent, cleanup=True)
         return Path(rendered_path)
 
@@ -52,6 +57,42 @@ class ASTVisualizer:
         if node.value is None:
             return node.type
         return f"{node.type}\n({node.value})"
+
+    def _ensure_graphviz_available(self) -> None:
+        """Ensure the Graphviz 'dot' executable is available, especially on Windows."""
+        if shutil.which("dot"):
+            return
+
+        for path in self._candidate_graphviz_bins():
+            dot_exe = path / "dot.exe"
+            if dot_exe.exists():
+                os.environ["PATH"] = f"{path}{os.pathsep}{os.environ.get('PATH', '')}"
+                return
+
+        raise ExecutableNotFound(
+            "Graphviz executable not found. Install Graphviz system software and add its 'bin' folder to PATH."
+        )
+
+    def _candidate_graphviz_bins(self) -> list[Path]:
+        """Return common Windows install locations for Graphviz."""
+        candidates: list[Path] = []
+        roots = [
+            Path(r"C:\Program Files"),
+            Path(r"C:\Program Files (x86)"),
+        ]
+
+        for root in roots:
+            direct_bin = root / "Graphviz" / "bin"
+            if direct_bin.exists():
+                candidates.append(direct_bin)
+
+            if root.exists():
+                for match in root.glob("Graphviz*"):
+                    bin_path = match / "bin"
+                    if bin_path.exists():
+                        candidates.append(bin_path)
+
+        return candidates
 
 
 if __name__ == "__main__":
@@ -78,5 +119,8 @@ if __name__ == "__main__":
     )
 
     visualizer = ASTVisualizer()
-    output_file = visualizer.render_ast(sample_ast, "ast_output")
-    print(f"AST visualization generated: {output_file}")
+    try:
+        output_file = visualizer.render_ast(sample_ast, "ast_output")
+        print(f"AST visualization generated: {output_file}")
+    except ExecutableNotFound as error:
+        print(error)
