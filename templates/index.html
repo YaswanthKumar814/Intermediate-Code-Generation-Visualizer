@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intermediate Code Generation Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <h1>Intermediate Code Generation Visualizer</h1>
+            <p>Enter source code, run the compiler pipeline, and inspect the generated AST and TAC.</p>
+        </header>
+
+        <main class="workspace">
+            <section class="panel input-panel">
+                <div class="panel-header">
+                    <h2>Source Code</h2>
+                    <p>Write a small C-like program and run the pipeline.</p>
+                </div>
+
+                <form action="{{ url_for('run_code') }}" method="post" class="editor-form">
+                    <label for="source_code" class="sr-only">Source code</label>
+                    <textarea id="source_code" name="source_code" spellcheck="false">{{ source_code }}</textarea>
+                    <button type="submit">Run</button>
+                </form>
+
+                {% if error %}
+                <div class="message error">{{ error }}</div>
+                {% endif %}
+
+                {% if result and result.warning %}
+                <div class="message warning">{{ result.warning }}</div>
+                {% endif %}
+            </section>
+
+            <section class="panel output-panel">
+                <div class="panel-header">
+                    <h2>Results</h2>
+                    <p>AST visualization and generated intermediate code.</p>
+                </div>
+
+                {% if result %}
+                <div class="result-block">
+                    <h3>AST Visualization</h3>
+                    {% if result.ast_image_url %}
+                    <img src="{{ result.ast_image_url }}" alt="AST visualization" class="ast-image">
+                    {% else %}
+                    <div class="placeholder">AST image is unavailable until Graphviz is installed correctly.</div>
+                    {% endif %}
+                </div>
+
+                <div class="result-grid">
+                    <div class="result-block">
+                        <h3>TAC Before Optimization</h3>
+                        <pre>{{ result.tac_before }}</pre>
+                    </div>
+                    <div class="result-block">
+                        <h3>TAC After Optimization</h3>
+                        <pre>{{ result.tac_after }}</pre>
+                    </div>
+                </div>
+                {% else %}
+                <div class="placeholder large">
+                    Run the sample program to generate the AST image and TAC output.
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>
