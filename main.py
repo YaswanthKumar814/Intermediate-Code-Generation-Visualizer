@@ -54,6 +54,7 @@ class CompilerPipeline:
         tac_after = self.optimizer.optimize(tac_before)
         print_section("TAC AFTER OPTIMIZATION")
         print(format_tac(tac_after))
+        print_optimization_summary(tac_before, tac_after)
 
         output_dir = Path(__file__).resolve().parent / "outputs"
         output_dir.mkdir(exist_ok=True)
@@ -79,16 +80,25 @@ def load_source_from_argument() -> str:
 def format_tokens(tokens: list) -> str:
     """Return a readable multi-line token listing."""
     lines = []
-    for token in tokens:
+    for index, token in enumerate(tokens, start=1):
         lines.append(
-            f"{token.token_type:<10} value={token.value!r:<8} line={token.line:<2} column={token.column}"
+            f"{index:>2}. {token.token_type:<10} value={token.value!r:<10} line={token.line:<2} column={token.column}"
         )
     return "\n".join(lines)
 
 
 def print_section(title: str) -> None:
     """Print a simple section header for console output."""
-    print(f"\n{'=' * 12} {title} {'=' * 12}")
+    rule = "=" * 18
+    print(f"\n{rule}\n{title}\n{rule}")
+
+
+def print_optimization_summary(tac_before: list, tac_after: list) -> None:
+    """Highlight the effect of optimization in a compact summary."""
+    print_section("OPTIMIZATION SUMMARY")
+    print(f"Instructions before optimization : {len(tac_before)}")
+    print(f"Instructions after optimization  : {len(tac_after)}")
+    print(f"Instructions removed            : {len(tac_before) - len(tac_after)}")
 
 
 def main() -> None:

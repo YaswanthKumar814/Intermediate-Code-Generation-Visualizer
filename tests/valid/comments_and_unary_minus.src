@@ -1,0 +1,5 @@
+// unary minus with comments
+int a = -5;
+/* adjust b using a grouped expression */
+int b = -(a + 2);
+print(b);

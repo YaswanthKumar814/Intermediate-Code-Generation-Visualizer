@@ -1,0 +1,44 @@
+[
+  {
+    "name": "valid_simple_arithmetic",
+    "path": "valid/simple_arithmetic.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = 25"
+    ]
+  },
+  {
+    "name": "valid_comments_and_unary_minus",
+    "path": "valid/comments_and_unary_minus.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = 3"
+    ]
+  },
+  {
+    "name": "invalid_undeclared_variable",
+    "path": "invalid/undeclared_variable.src",
+    "expected": "error",
+    "error_contains": "Semantic Error: Variable 'b' not declared"
+  },
+  {
+    "name": "invalid_redeclaration",
+    "path": "invalid/redeclaration.src",
+    "expected": "error",
+    "error_contains": "Semantic Error: Variable 'a' redeclared"
+  },
+  {
+    "name": "edge_division_by_zero",
+    "path": "edge/division_by_zero.src",
+    "expected": "error",
+    "error_contains": "Division by zero"
+  },
+  {
+    "name": "edge_nested_expression",
+    "path": "edge/nested_expression.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = 22"
+    ]
+  }
+]
