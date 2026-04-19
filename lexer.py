@@ -57,6 +57,17 @@ t_RBRACE = r"\}"
 t_ignore = " \t\r"
 
 
+def t_COMMENT_SINGLE(token):
+    r"//[^\n]*"
+    # Ignore single-line comments.
+
+
+def t_COMMENT_MULTI(token):
+    r"/\*[\s\S]*?\*/"
+    # Ignore multi-line comments while preserving line numbers.
+    token.lexer.lineno += token.value.count("\n")
+
+
 def _find_column(lexdata: str, lexpos: int) -> int:
     """Compute the 1-based column for a token position."""
     line_start = lexdata.rfind("\n", 0, lexpos) + 1
@@ -134,7 +145,10 @@ def tokenize(input_code: str) -> List[Token]:
 
 if __name__ == "__main__":
     sample_code = """
+    // single-line comment
     int a = 5;
+    /* multi-line
+       comment */
     print(a);
     """
 

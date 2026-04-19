@@ -8,6 +8,7 @@ import ply.yacc as yacc
 
 from ast_nodes import ASTNode
 from lexer import CompilerLexer
+from symbol_table import SemanticAnalyzer
 
 
 class CompilerParser:
@@ -18,17 +19,22 @@ class CompilerParser:
     precedence = (
         ("left", "PLUS", "MINUS"),
         ("left", "TIMES", "DIVIDE"),
+        ("right", "UMINUS"),
     )
 
     def __init__(self) -> None:
         """Initialize lexer and parser instances."""
         self.lexer = CompilerLexer()
+        self.semantic_analyzer = SemanticAnalyzer()
         self.parser = yacc.yacc(module=self, write_tables=False, debug=False)
 
     def parse(self, source_code: str) -> ASTNode:
         """Parse source code and return the root AST node."""
         self.lexer.lexer.lineno = 1
-        return self.parser.parse(source_code, lexer=self.lexer.lexer)
+        ast_root = self.parser.parse(source_code, lexer=self.lexer.lexer)
+        self.semantic_analyzer = SemanticAnalyzer()
+        self.semantic_analyzer.validate(ast_root)
+        return ast_root
 
     def p_program(self, production) -> None:
         """program : statement_list"""
@@ -83,6 +89,14 @@ class CompilerParser:
             children=[production[1], production[3]],
         )
 
+    def p_expression_uminus(self, production) -> None:
+        """expression : MINUS expression %prec UMINUS"""
+        production[0] = ASTNode(
+            "BinOp",
+            value="-",
+            children=[ASTNode("Number", value=0), production[2]],
+        )
+
     def p_expression_group(self, production) -> None:
         """expression : LPAREN expression RPAREN"""
         production[0] = production[2]
@@ -109,9 +123,8 @@ class CompilerParser:
 
 if __name__ == "__main__":
     sample_code = """
-    int a = 5;
-    int b;
-    b = a + 3 * 2;
+    int a = -5;
+    int b = -(a + 2);
     print(b);
     """
 

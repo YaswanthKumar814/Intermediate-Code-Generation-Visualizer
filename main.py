@@ -9,7 +9,7 @@ from pathlib import Path
 from graphviz.backend import ExecutableNotFound
 
 from lexer import CompilerLexer
-from optimizer import TACOptimizer, format_tac
+from optimizer import DivisionByZeroError, TACOptimizer, format_tac
 from parser import CompilerParser
 from tac_generator import TACGenerator
 from visualizer import ASTVisualizer
@@ -99,6 +99,8 @@ def main() -> None:
         pipeline.run(source_code)
     except FileNotFoundError as error:
         print(f"Input file not found: {error.filename}")
+    except DivisionByZeroError:
+        print("Compilation failed: Division by zero")
     except (SyntaxError, ValueError, ZeroDivisionError) as error:
         print(f"Compilation failed: {error}")
 

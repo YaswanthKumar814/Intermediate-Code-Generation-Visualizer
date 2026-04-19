@@ -7,14 +7,23 @@ from typing import Any, Dict, Iterable, List, Set, Tuple
 from tac_generator import TACInstruction
 
 
+class DivisionByZeroError(ValueError):
+    """Raised when constant folding detects division by zero."""
+
+
 class TACOptimizer:
     """Applies optimization passes to three-address code."""
 
     COMMUTATIVE_OPS = {"+", "*"}
     ARITHMETIC_OPS = {"+", "-", "*", "/"}
 
+    def __init__(self) -> None:
+        """Initialize optimizer state."""
+        self.warnings: List[str] = []
+
     def optimize(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
         """Run all optimization passes in a simple, stable order."""
+        self.warnings = []
         optimized = self.constant_folding(instructions)
         optimized = self.common_subexpression_elimination(optimized)
         optimized = self.dead_code_elimination(optimized)
@@ -151,13 +160,18 @@ class TACOptimizer:
             return left * right
         if operator == "/":
             if right == 0:
-                raise ZeroDivisionError("Division by zero during constant folding.")
-            return left // right
+                raise DivisionByZeroError("Error: Division by zero")
+            return self._truncate_toward_zero(left, right)
         raise ValueError(f"Unsupported operator: {operator}")
 
     def _is_number(self, value: Any) -> bool:
         """Return True when the operand is an integer constant."""
         return isinstance(value, int)
+
+    def _truncate_toward_zero(self, left: int, right: int) -> int:
+        """Perform C-like integer division by truncating toward zero."""
+        quotient = abs(left) // abs(right)
+        return quotient if (left >= 0) == (right >= 0) else -quotient
 
 
 def format_tac(instructions: Iterable[TACInstruction]) -> str:
@@ -167,20 +181,18 @@ def format_tac(instructions: Iterable[TACInstruction]) -> str:
 
 if __name__ == "__main__":
     before_tac = [
-        TACInstruction("a", 5),
-        TACInstruction("b", 10),
-        TACInstruction("t1", 2, "+", 3),
-        TACInstruction("t2", "a", "+", "b"),
-        TACInstruction("t3", "a", "+", "b"),
-        TACInstruction("unused", "t1"),
-        TACInstruction("c", "t3"),
-        TACInstruction("print", "c"),
+        TACInstruction("t1", -3, "/", 2),
+        TACInstruction("t2", 10, "/", 0),
+        TACInstruction("print", "t1"),
     ]
 
     optimizer = TACOptimizer()
-    after_tac = optimizer.optimize(before_tac)
 
     print("BEFORE TAC")
     print(format_tac(before_tac))
-    print("\nAFTER TAC")
-    print(format_tac(after_tac))
+    try:
+        after_tac = optimizer.optimize(before_tac)
+        print("\nAFTER TAC")
+        print(format_tac(after_tac))
+    except DivisionByZeroError as error:
+        print(f"\nOptimization failed: {error}")
