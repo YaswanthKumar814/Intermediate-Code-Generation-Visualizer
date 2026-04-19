@@ -30,6 +30,14 @@ RESERVED_KEYWORDS = {
 PLY_TOKENS = (
     "IDENTIFIER",
     "NUMBER",
+    "GE",
+    "LE",
+    "GT",
+    "LT",
+    "EQ",
+    "NE",
+    "AND",
+    "OR",
     "PLUS",
     "MINUS",
     "TIMES",
@@ -44,6 +52,14 @@ PLY_TOKENS = (
 
 tokens = PLY_TOKENS
 
+t_GE = r">="
+t_LE = r"<="
+t_EQ = r"=="
+t_NE = r"!="
+t_AND = r"&&"
+t_OR = r"\|\|"
+t_GT = r">"
+t_LT = r"<"
 t_PLUS = r"\+"
 t_MINUS = r"-"
 t_TIMES = r"\*"
@@ -145,11 +161,11 @@ def tokenize(input_code: str) -> List[Token]:
 
 if __name__ == "__main__":
     sample_code = """
-    // single-line comment
     int a = 5;
-    /* multi-line
-       comment */
-    print(a);
+    int b = 3;
+    if (a >= 2 && b < 5) {
+        print(a);
+    }
     """
 
     print("Input:")

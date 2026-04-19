@@ -33,6 +33,8 @@ class TACInstruction:
 class TACGenerator:
     """Converts an abstract syntax tree into three-address code."""
 
+    ARITHMETIC_OPS = {"+", "-", "*", "/"}
+
     def __init__(self) -> None:
         """Initialize temporary state and the generated instruction list."""
         self.temp_count = 0
@@ -118,6 +120,17 @@ class TACGenerator:
             self.emit(end_label, None, "label")
             return
 
+        if node.type == "WHILE":
+            start_label = self.new_label()
+            end_label = self.new_label()
+            self.emit(start_label, None, "label")
+            condition = self._generate_expression(node.children[0])
+            self.emit("", condition, "if_false", end_label)
+            self._generate_statement(node.children[1])
+            self.emit("", start_label, "goto")
+            self.emit(end_label, None, "label")
+            return
+
         raise ValueError(f"Unsupported statement node: {node.type}")
 
     def _generate_expression(self, node: ASTNode) -> Any:
@@ -132,7 +145,10 @@ class TACGenerator:
             left = self._generate_expression(node.children[0])
             right = self._generate_expression(node.children[1])
             temp = self.new_temp()
-            self.emit(temp, left, node.value, right)
+            if node.value in self.ARITHMETIC_OPS:
+                self.emit(temp, left, node.value, right)
+            else:
+                self.emit(temp, f"{left} {node.value} {right}")
             return temp
 
         raise ValueError(f"Unsupported expression node: {node.type}")
@@ -142,11 +158,10 @@ if __name__ == "__main__":
     from parser import CompilerParser
 
     sample_code = """
-    int a = 5;
-    if (a) {
+    int a = 3;
+    while (a > 0) {
         print(a);
-    } else {
-        print(0);
+        a = a - 1;
     }
     """
 
@@ -163,10 +178,12 @@ if __name__ == "__main__":
         print(instruction)
 
     print("\nExample Output:")
-    print("a = 5")
-    print("if_false a goto L1")
-    print("print = a")
-    print("goto L2")
+    print("a = 3")
     print("L1:")
-    print("print = 0")
+    print("t1 = a > 0")
+    print("if_false t1 goto L2")
+    print("print = a")
+    print("t2 = a - 1")
+    print("a = t2")
+    print("goto L1")
     print("L2:")

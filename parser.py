@@ -17,6 +17,10 @@ class CompilerParser:
     tokens = CompilerLexer.tokens
 
     precedence = (
+        ("left", "OR"),
+        ("left", "AND"),
+        ("left", "EQ", "NE"),
+        ("left", "GT", "LT", "GE", "LE"),
         ("left", "PLUS", "MINUS"),
         ("left", "TIMES", "DIVIDE"),
         ("right", "UMINUS"),
@@ -52,7 +56,8 @@ class CompilerParser:
         """statement : declaration_statement
                      | assignment_statement
                      | print_statement
-                     | if_statement"""
+                     | if_statement
+                     | while_statement"""
         production[0] = production[1]
 
     def p_block_nonempty(self, production) -> None:
@@ -95,11 +100,23 @@ class CompilerParser:
         else:
             production[0] = ASTNode("IF_ELSE", children=[production[3], production[5], production[7]])
 
+    def p_while_statement(self, production) -> None:
+        """while_statement : WHILE LPAREN expression RPAREN block"""
+        production[0] = ASTNode("WHILE", children=[production[3], production[5]])
+
     def p_expression_binary(self, production) -> None:
         """expression : expression PLUS expression
                       | expression MINUS expression
                       | expression TIMES expression
-                      | expression DIVIDE expression"""
+                      | expression DIVIDE expression
+                      | expression GT expression
+                      | expression LT expression
+                      | expression GE expression
+                      | expression LE expression
+                      | expression EQ expression
+                      | expression NE expression
+                      | expression AND expression
+                      | expression OR expression"""
         production[0] = ASTNode(
             "BinOp",
             value=production[2],
@@ -175,6 +192,11 @@ class CompilerParser:
                 validate_statement(node.children[2])
                 return
 
+            if node.type == "WHILE":
+                validate_expression(node.children[0])
+                validate_statement(node.children[1])
+                return
+
             raise SemanticError(f"Semantic Error: Unsupported statement type '{node.type}'")
 
         def validate_expression(node: ASTNode) -> None:
@@ -196,10 +218,9 @@ class CompilerParser:
 if __name__ == "__main__":
     sample_code = """
     int a = 5;
-    if (a) {
+    int b = 3;
+    if (a > 2 && b < 5) {
         print(a);
-    } else {
-        print(0);
     }
     """
 
