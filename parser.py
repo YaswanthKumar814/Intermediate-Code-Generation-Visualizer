@@ -8,7 +8,7 @@ import ply.yacc as yacc
 
 from ast_nodes import ASTNode
 from lexer import CompilerLexer
-from symbol_table import SemanticAnalyzer
+from symbol_table import SemanticAnalyzer, SemanticError
 
 
 class CompilerParser:
@@ -33,7 +33,7 @@ class CompilerParser:
         self.lexer.lexer.lineno = 1
         ast_root = self.parser.parse(source_code, lexer=self.lexer.lexer)
         self.semantic_analyzer = SemanticAnalyzer()
-        self.semantic_analyzer.validate(ast_root)
+        self._validate_semantics(ast_root)
         return ast_root
 
     def p_program(self, production) -> None:
@@ -51,8 +51,17 @@ class CompilerParser:
     def p_statement(self, production) -> None:
         """statement : declaration_statement
                      | assignment_statement
-                     | print_statement"""
+                     | print_statement
+                     | if_statement"""
         production[0] = production[1]
+
+    def p_block_nonempty(self, production) -> None:
+        """block : LBRACE statement_list RBRACE"""
+        production[0] = ASTNode("Block", children=production[2])
+
+    def p_block_empty(self, production) -> None:
+        """block : LBRACE RBRACE"""
+        production[0] = ASTNode("Block", children=[])
 
     def p_declaration_statement_initialized(self, production) -> None:
         """declaration_statement : INT IDENTIFIER ASSIGN expression SEMICOLON"""
@@ -77,6 +86,14 @@ class CompilerParser:
     def p_print_statement(self, production) -> None:
         """print_statement : PRINT LPAREN expression RPAREN SEMICOLON"""
         production[0] = ASTNode("Print", children=[production[3]])
+
+    def p_if_statement(self, production) -> None:
+        """if_statement : IF LPAREN expression RPAREN block
+                        | IF LPAREN expression RPAREN block ELSE block"""
+        if len(production) == 6:
+            production[0] = ASTNode("IF", children=[production[3], production[5]])
+        else:
+            production[0] = ASTNode("IF_ELSE", children=[production[3], production[5], production[7]])
 
     def p_expression_binary(self, production) -> None:
         """expression : expression PLUS expression
@@ -120,12 +137,70 @@ class CompilerParser:
             f"at line {production.lineno}, column {column}"
         )
 
+    def _validate_semantics(self, ast_root: ASTNode) -> None:
+        """Run semantic validation, including control-flow blocks."""
+        symbol_table = self.semantic_analyzer.symbol_table
+
+        def validate_statement(node: ASTNode) -> None:
+            if node.type == "Program" or node.type == "Block":
+                for child in node.children:
+                    validate_statement(child)
+                return
+
+            if node.type == "VarDecl":
+                if node.children:
+                    validate_expression(node.children[0])
+                symbol_table.define(node.value, "int")
+                return
+
+            if node.type == "Assign":
+                if symbol_table.lookup(node.value) is None:
+                    raise SemanticError(f"Semantic Error: Variable '{node.value}' not declared")
+                validate_expression(node.children[0])
+                symbol_table.update(node.value, None)
+                return
+
+            if node.type == "Print":
+                validate_expression(node.children[0])
+                return
+
+            if node.type == "IF":
+                validate_expression(node.children[0])
+                validate_statement(node.children[1])
+                return
+
+            if node.type == "IF_ELSE":
+                validate_expression(node.children[0])
+                validate_statement(node.children[1])
+                validate_statement(node.children[2])
+                return
+
+            raise SemanticError(f"Semantic Error: Unsupported statement type '{node.type}'")
+
+        def validate_expression(node: ASTNode) -> None:
+            if node.type == "Number":
+                return
+            if node.type == "Identifier":
+                if symbol_table.lookup(node.value) is None:
+                    raise SemanticError(f"Semantic Error: Variable '{node.value}' not declared")
+                return
+            if node.type == "BinOp":
+                validate_expression(node.children[0])
+                validate_expression(node.children[1])
+                return
+            raise SemanticError(f"Semantic Error: Unsupported expression type '{node.type}'")
+
+        validate_statement(ast_root)
+
 
 if __name__ == "__main__":
     sample_code = """
-    int a = -5;
-    int b = -(a + 2);
-    print(b);
+    int a = 5;
+    if (a) {
+        print(a);
+    } else {
+        print(0);
+    }
     """
 
     parser = CompilerParser()

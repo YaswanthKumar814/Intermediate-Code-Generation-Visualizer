@@ -1,0 +1,5 @@
+int a = 0;
+if (a) {
+    print(1);
+}
+print(2);

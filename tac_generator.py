@@ -19,6 +19,12 @@ class TACInstruction:
 
     def __str__(self) -> str:
         """Render the instruction in a compact classroom-friendly format."""
+        if self.operator == "label":
+            return f"{self.target}:"
+        if self.operator == "goto":
+            return f"goto {self.arg1}"
+        if self.operator == "if_false":
+            return f"if_false {self.arg1} goto {self.arg2}"
         if self.operator is None:
             return f"{self.target} = {self.arg1}"
         return f"{self.target} = {self.arg1} {self.operator} {self.arg2}"
@@ -30,11 +36,13 @@ class TACGenerator:
     def __init__(self) -> None:
         """Initialize temporary state and the generated instruction list."""
         self.temp_count = 0
+        self.label_count = 0
         self.instructions: List[TACInstruction] = []
 
     def generate(self, ast_root: ASTNode) -> List[TACInstruction]:
         """Generate TAC instructions from the AST root node."""
         self.temp_count = 0
+        self.label_count = 0
         self.instructions = []
 
         if ast_root.type != "Program":
@@ -49,6 +57,11 @@ class TACGenerator:
         """Create a fresh temporary variable name."""
         self.temp_count += 1
         return f"t{self.temp_count}"
+
+    def new_label(self) -> str:
+        """Create a fresh label name for control flow."""
+        self.label_count += 1
+        return f"L{self.label_count}"
 
     def emit(
         self,
@@ -80,6 +93,31 @@ class TACGenerator:
             self.emit("print", value)
             return
 
+        if node.type == "Block":
+            for statement in node.children:
+                self._generate_statement(statement)
+            return
+
+        if node.type == "IF":
+            false_label = self.new_label()
+            condition = self._generate_expression(node.children[0])
+            self.emit("", condition, "if_false", false_label)
+            self._generate_statement(node.children[1])
+            self.emit(false_label, None, "label")
+            return
+
+        if node.type == "IF_ELSE":
+            false_label = self.new_label()
+            end_label = self.new_label()
+            condition = self._generate_expression(node.children[0])
+            self.emit("", condition, "if_false", false_label)
+            self._generate_statement(node.children[1])
+            self.emit("", end_label, "goto")
+            self.emit(false_label, None, "label")
+            self._generate_statement(node.children[2])
+            self.emit(end_label, None, "label")
+            return
+
         raise ValueError(f"Unsupported statement node: {node.type}")
 
     def _generate_expression(self, node: ASTNode) -> Any:
@@ -105,10 +143,11 @@ if __name__ == "__main__":
 
     sample_code = """
     int a = 5;
-    int b = 10;
-    int c;
-    c = a + b * 2;
-    print(c);
+    if (a) {
+        print(a);
+    } else {
+        print(0);
+    }
     """
 
     parser = CompilerParser()
@@ -124,7 +163,10 @@ if __name__ == "__main__":
         print(instruction)
 
     print("\nExample Output:")
-    print("t1 = b * 2")
-    print("t2 = a + t1")
-    print("c = t2")
-    print("print = c")
+    print("a = 5")
+    print("if_false a goto L1")
+    print("print = a")
+    print("goto L2")
+    print("L1:")
+    print("print = 0")
+    print("L2:")
