@@ -24,6 +24,7 @@ RESERVED_KEYWORDS = {
     "if": "IF",
     "else": "ELSE",
     "while": "WHILE",
+    "for": "FOR",
     "print": "PRINT",
 }
 

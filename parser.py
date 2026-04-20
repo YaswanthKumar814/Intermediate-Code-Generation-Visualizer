@@ -57,7 +57,8 @@ class CompilerParser:
                      | assignment_statement
                      | print_statement
                      | if_statement
-                     | while_statement"""
+                     | while_statement
+                     | for_statement"""
         production[0] = production[1]
 
     def p_block_nonempty(self, production) -> None:
@@ -88,6 +89,38 @@ class CompilerParser:
             children=[production[3]],
         )
 
+    def p_for_init_declaration_initialized(self, production) -> None:
+        """for_init : INT IDENTIFIER ASSIGN expression"""
+        production[0] = ASTNode("VarDecl", value=production[2], children=[production[4]])
+
+    def p_for_init_declaration_uninitialized(self, production) -> None:
+        """for_init : INT IDENTIFIER"""
+        production[0] = ASTNode("VarDecl", value=production[2], children=[])
+
+    def p_for_init_assignment(self, production) -> None:
+        """for_init : IDENTIFIER ASSIGN expression"""
+        production[0] = ASTNode("Assign", value=production[1], children=[production[3]])
+
+    def p_for_init_empty(self, production) -> None:
+        """for_init : empty"""
+        production[0] = ASTNode("Empty")
+
+    def p_for_condition_expression(self, production) -> None:
+        """for_condition : expression"""
+        production[0] = production[1]
+
+    def p_for_condition_empty(self, production) -> None:
+        """for_condition : empty"""
+        production[0] = ASTNode("Empty")
+
+    def p_for_update_assignment(self, production) -> None:
+        """for_update : IDENTIFIER ASSIGN expression"""
+        production[0] = ASTNode("Assign", value=production[1], children=[production[3]])
+
+    def p_for_update_empty(self, production) -> None:
+        """for_update : empty"""
+        production[0] = ASTNode("Empty")
+
     def p_print_statement(self, production) -> None:
         """print_statement : PRINT LPAREN expression RPAREN SEMICOLON"""
         production[0] = ASTNode("Print", children=[production[3]])
@@ -103,6 +136,10 @@ class CompilerParser:
     def p_while_statement(self, production) -> None:
         """while_statement : WHILE LPAREN expression RPAREN block"""
         production[0] = ASTNode("WHILE", children=[production[3], production[5]])
+
+    def p_for_statement(self, production) -> None:
+        """for_statement : FOR LPAREN for_init SEMICOLON for_condition SEMICOLON for_update RPAREN block"""
+        production[0] = ASTNode("FOR", children=[production[3], production[5], production[7], production[9]])
 
     def p_expression_binary(self, production) -> None:
         """expression : expression PLUS expression
@@ -143,6 +180,10 @@ class CompilerParser:
         """expression : IDENTIFIER"""
         production[0] = ASTNode("Identifier", value=production[1])
 
+    def p_empty(self, production) -> None:
+        """empty :"""
+        production[0] = None
+
     def p_error(self, production: Optional[object]) -> None:
         """Raise a clear syntax error with token location information."""
         if production is None:
@@ -181,6 +222,9 @@ class CompilerParser:
                 validate_expression(node.children[0])
                 return
 
+            if node.type == "Empty":
+                return
+
             if node.type == "IF":
                 validate_expression(node.children[0])
                 validate_statement(node.children[1])
@@ -197,9 +241,22 @@ class CompilerParser:
                 validate_statement(node.children[1])
                 return
 
+            if node.type == "FOR":
+                init_node, condition_node, update_node, body_node = node.children
+                if init_node.type != "Empty":
+                    validate_statement(init_node)
+                if condition_node.type != "Empty":
+                    validate_expression(condition_node)
+                validate_statement(body_node)
+                if update_node.type != "Empty":
+                    validate_statement(update_node)
+                return
+
             raise SemanticError(f"Semantic Error: Unsupported statement type '{node.type}'")
 
         def validate_expression(node: ASTNode) -> None:
+            if node.type == "Empty":
+                return
             if node.type == "Number":
                 return
             if node.type == "Identifier":
@@ -217,10 +274,8 @@ class CompilerParser:
 
 if __name__ == "__main__":
     sample_code = """
-    int a = 5;
-    int b = 3;
-    if (a > 2 && b < 5) {
-        print(a);
+    for (;;) {
+        print(1);
     }
     """
 

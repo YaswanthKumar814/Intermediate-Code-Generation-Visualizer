@@ -41,12 +41,20 @@ class ASTVisualizer:
 
     def _add_ast_node(self, graph: Digraph, node: ASTNode) -> str:
         """Recursively add AST nodes and edges to the Graphviz graph."""
+        if node is None:
+            node_id = f"node_{self._node_count}"
+            self._node_count += 1
+            graph.node(node_id, "None")
+            return node_id
+
         node_id = f"node_{self._node_count}"
         self._node_count += 1
 
         graph.node(node_id, self._format_label(node))
 
         for child in node.children:
+            if child is None:
+                continue
             child_id = self._add_ast_node(graph, child)
             graph.edge(node_id, child_id)
 
@@ -54,6 +62,8 @@ class ASTVisualizer:
 
     def _format_label(self, node: ASTNode) -> str:
         """Create a clear label for a visualized AST node."""
+        if node is None:
+            return "None"
         if node.value is None:
             return node.type
         return f"{node.type}\n({node.value})"

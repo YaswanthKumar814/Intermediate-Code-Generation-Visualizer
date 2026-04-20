@@ -79,6 +79,9 @@ class TACGenerator:
 
     def _generate_statement(self, node: ASTNode) -> None:
         """Dispatch TAC generation for statement-level AST nodes."""
+        if node.type == "Empty":
+            return
+
         if node.type == "VarDecl":
             if node.children:
                 value = self._generate_expression(node.children[0])
@@ -131,10 +134,29 @@ class TACGenerator:
             self.emit(end_label, None, "label")
             return
 
+        if node.type == "FOR":
+            init_node, condition_node, update_node, body_node = node.children
+            if init_node.type != "Empty":
+                self._generate_statement(init_node)
+            start_label = self.new_label()
+            end_label = self.new_label()
+            self.emit(start_label, None, "label")
+            condition = self._generate_expression(condition_node)
+            self.emit("", condition, "if_false", end_label)
+            self._generate_statement(body_node)
+            if update_node.type != "Empty":
+                self._generate_statement(update_node)
+            self.emit("", start_label, "goto")
+            self.emit(end_label, None, "label")
+            return
+
         raise ValueError(f"Unsupported statement node: {node.type}")
 
     def _generate_expression(self, node: ASTNode) -> Any:
         """Generate TAC for an expression and return its resulting operand."""
+        if node.type == "Empty":
+            return 1
+
         if node.type == "Number":
             return node.value
 
@@ -158,10 +180,8 @@ if __name__ == "__main__":
     from parser import CompilerParser
 
     sample_code = """
-    int a = 3;
-    while (a > 0) {
-        print(a);
-        a = a - 1;
+    for (;;) {
+        print(1);
     }
     """
 
@@ -178,12 +198,8 @@ if __name__ == "__main__":
         print(instruction)
 
     print("\nExample Output:")
-    print("a = 3")
     print("L1:")
-    print("t1 = a > 0")
-    print("if_false t1 goto L2")
-    print("print = a")
-    print("t2 = a - 1")
-    print("a = t2")
+    print("if_false 1 goto L2")
+    print("print = 1")
     print("goto L1")
     print("L2:")
