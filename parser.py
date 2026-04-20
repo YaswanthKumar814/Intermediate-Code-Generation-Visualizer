@@ -36,6 +36,9 @@ class CompilerParser:
         """Parse source code and return the root AST node."""
         self.lexer.lexer.lineno = 1
         ast_root = self.parser.parse(source_code, lexer=self.lexer.lexer)
+        if ast_root is None:
+            ast_root = ASTNode("Program", children=[])
+        ast_root = self._sanitize_ast(ast_root)
         self.semantic_analyzer = SemanticAnalyzer()
         self._validate_semantics(ast_root)
         return ast_root
@@ -43,6 +46,10 @@ class CompilerParser:
     def p_program(self, production) -> None:
         """program : statement_list"""
         production[0] = ASTNode("Program", children=production[1])
+
+    def p_program_empty(self, production) -> None:
+        """program : empty"""
+        production[0] = ASTNode("Program", children=[])
 
     def p_statement_list_multiple(self, production) -> None:
         """statement_list : statement_list statement"""
@@ -270,6 +277,15 @@ class CompilerParser:
             raise SemanticError(f"Semantic Error: Unsupported expression type '{node.type}'")
 
         validate_statement(ast_root)
+
+    def _sanitize_ast(self, node: ASTNode | None) -> ASTNode:
+        """Replace missing AST nodes with Empty nodes recursively."""
+        if node is None:
+            return ASTNode("Empty")
+
+        sanitized_children = [self._sanitize_ast(child) for child in node.children]
+        node.children = sanitized_children
+        return node
 
 
 if __name__ == "__main__":

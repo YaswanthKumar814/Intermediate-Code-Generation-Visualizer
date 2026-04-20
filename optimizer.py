@@ -17,20 +17,25 @@ class TACOptimizer:
     COMMUTATIVE_OPS = {"+", "*"}
     ARITHMETIC_OPS = {"+", "-", "*", "/"}
     CONTROL_FLOW_OPS = {"label", "goto", "if_false"}
+    BLOCK_TERMINATORS = {"goto", "if_false"}
 
     def __init__(self) -> None:
         """Initialize optimizer state."""
         self.warnings: List[str] = []
 
     def optimize(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
-        """Run all optimization passes in a simple, stable order."""
+        """Run optimizations while preserving control-flow boundaries."""
         self.warnings = []
-        if self._has_control_flow(instructions):
-            optimized: List[TACInstruction] = []
-            for block in self._split_basic_blocks(instructions):
-                optimized.extend(self._optimize_basic_block(block))
-            return optimized
+        if not self._has_control_flow(instructions):
+            return self._optimize_straight_line(instructions)
 
+        optimized: List[TACInstruction] = []
+        for block in self._split_basic_blocks(instructions):
+            optimized.extend(self._optimize_basic_block(block))
+        return optimized
+
+    def _optimize_straight_line(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
+        """Apply the full optimization pipeline to linear TAC only."""
         optimized = self.constant_folding(instructions)
         optimized = self.common_subexpression_elimination(optimized)
         optimized = self.dead_code_elimination(optimized)
@@ -75,7 +80,7 @@ class TACOptimizer:
         return optimized
 
     def dead_code_elimination(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
-        """Remove assignments whose results are never used."""
+        """Remove assignments whose results are never used in straight-line TAC."""
         if self._has_control_flow(instructions):
             return list(instructions)
 
@@ -215,7 +220,7 @@ class TACOptimizer:
 
             current_block.append(instruction)
 
-            if instruction.operator in {"goto", "if_false"}:
+            if instruction.operator in self.BLOCK_TERMINATORS:
                 blocks.append(current_block)
                 current_block = []
 
@@ -225,7 +230,7 @@ class TACOptimizer:
         return blocks
 
     def _optimize_basic_block(self, block: List[TACInstruction]) -> List[TACInstruction]:
-        """Apply only straight-line-safe optimizations inside one basic block."""
+        """Apply only local optimizations inside one basic block."""
         leading_labels: List[TACInstruction] = []
         middle_start = 0
 
@@ -235,13 +240,15 @@ class TACOptimizer:
 
         trailing_control: List[TACInstruction] = []
         middle_end = len(block)
-        if middle_start < len(block) and block[-1].operator in {"goto", "if_false"}:
+        if middle_start < len(block) and block[-1].operator in self.BLOCK_TERMINATORS:
             trailing_control = [block[-1]]
             middle_end -= 1
 
         middle = block[middle_start:middle_end]
         optimized_middle = self.constant_folding(middle)
         optimized_middle = self.common_subexpression_elimination(optimized_middle)
+        # Dead-code elimination is intentionally skipped here because values can
+        # remain live across successor blocks reached through jumps.
 
         return leading_labels + optimized_middle + trailing_control
 

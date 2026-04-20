@@ -27,7 +27,7 @@ class ASTVisualizer:
         graph.attr(rankdir="TB")
         graph.attr("node", shape="box", style="rounded,filled", fillcolor="lightyellow")
 
-        self._add_ast_node(graph, ast_root)
+        self._add_ast_node(graph, self._normalize_node(ast_root))
         return graph
 
     def render_ast(self, ast_root: ASTNode, output_path: str | Path) -> Path:
@@ -41,32 +41,33 @@ class ASTVisualizer:
 
     def _add_ast_node(self, graph: Digraph, node: ASTNode) -> str:
         """Recursively add AST nodes and edges to the Graphviz graph."""
-        if node is None:
-            node_id = f"node_{self._node_count}"
-            self._node_count += 1
-            graph.node(node_id, "None")
-            return node_id
+        node = self._normalize_node(node)
 
         node_id = f"node_{self._node_count}"
         self._node_count += 1
 
         graph.node(node_id, self._format_label(node))
 
-        for child in node.children:
-            if child is None:
-                continue
-            child_id = self._add_ast_node(graph, child)
+        for child in getattr(node, "children", []):
+            child_id = self._add_ast_node(graph, self._normalize_node(child))
             graph.edge(node_id, child_id)
 
         return node_id
 
     def _format_label(self, node: ASTNode) -> str:
         """Create a clear label for a visualized AST node."""
+        node = self._normalize_node(node)
+        node_value = getattr(node, "value", None)
+        node_type = getattr(node, "type", "Empty")
+        if node_value is None:
+            return node_type
+        return f"{node_type}\n({node_value})"
+
+    def _normalize_node(self, node: ASTNode | None) -> ASTNode:
+        """Convert missing AST entries into Empty nodes for safe rendering."""
         if node is None:
-            return "None"
-        if node.value is None:
-            return node.type
-        return f"{node.type}\n({node.value})"
+            return ASTNode("Empty")
+        return node
 
     def _ensure_graphviz_available(self) -> None:
         """Ensure the Graphviz 'dot' executable is available, especially on Windows."""

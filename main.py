@@ -79,6 +79,9 @@ def load_source_from_argument() -> str:
 
 def format_tokens(tokens: list) -> str:
     """Return a readable multi-line token listing."""
+    if not tokens:
+        return "(no tokens)"
+
     lines = []
     for index, token in enumerate(tokens, start=1):
         lines.append(
@@ -112,6 +115,8 @@ def main() -> None:
     except DivisionByZeroError:
         print("Compilation failed: Division by zero")
     except (SyntaxError, ValueError, ZeroDivisionError) as error:
+        print(f"Compilation failed: {error}")
+    except Exception as error:  # noqa: BLE001
         print(f"Compilation failed: {error}")
 
 
