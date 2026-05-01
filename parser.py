@@ -63,6 +63,8 @@ class CompilerParser:
         """statement : declaration_statement
                      | assignment_statement
                      | print_statement
+                     | goto_statement
+                     | label_statement
                      | if_statement
                      | while_statement
                      | for_statement"""
@@ -76,17 +78,25 @@ class CompilerParser:
         """block : LBRACE RBRACE"""
         production[0] = ASTNode("Block", children=[])
 
-    def p_declaration_statement_initialized(self, production) -> None:
-        """declaration_statement : INT IDENTIFIER ASSIGN expression SEMICOLON"""
-        production[0] = ASTNode(
-            "VarDecl",
-            value=production[2],
-            children=[production[4]],
-        )
+    def p_declaration_statement(self, production) -> None:
+        """declaration_statement : INT declarator_list SEMICOLON"""
+        production[0] = self._declaration_result(production[2])
 
-    def p_declaration_statement_uninitialized(self, production) -> None:
-        """declaration_statement : INT IDENTIFIER SEMICOLON"""
-        production[0] = ASTNode("VarDecl", value=production[2], children=[])
+    def p_declarator_list_multiple(self, production) -> None:
+        """declarator_list : declarator_list COMMA declarator"""
+        production[0] = production[1] + [production[3]]
+
+    def p_declarator_list_single(self, production) -> None:
+        """declarator_list : declarator"""
+        production[0] = [production[1]]
+
+    def p_declarator_initialized(self, production) -> None:
+        """declarator : IDENTIFIER ASSIGN expression"""
+        production[0] = ASTNode("VarDecl", value=production[1], children=[production[3]])
+
+    def p_declarator_uninitialized(self, production) -> None:
+        """declarator : IDENTIFIER"""
+        production[0] = ASTNode("VarDecl", value=production[1], children=[])
 
     def p_assignment_statement(self, production) -> None:
         """assignment_statement : IDENTIFIER ASSIGN expression SEMICOLON"""
@@ -96,13 +106,9 @@ class CompilerParser:
             children=[production[3]],
         )
 
-    def p_for_init_declaration_initialized(self, production) -> None:
-        """for_init : INT IDENTIFIER ASSIGN expression"""
-        production[0] = ASTNode("VarDecl", value=production[2], children=[production[4]])
-
-    def p_for_init_declaration_uninitialized(self, production) -> None:
-        """for_init : INT IDENTIFIER"""
-        production[0] = ASTNode("VarDecl", value=production[2], children=[])
+    def p_for_init_declaration(self, production) -> None:
+        """for_init : INT declarator_list"""
+        production[0] = self._declaration_result(production[2])
 
     def p_for_init_assignment(self, production) -> None:
         """for_init : IDENTIFIER ASSIGN expression"""
@@ -131,6 +137,14 @@ class CompilerParser:
     def p_print_statement(self, production) -> None:
         """print_statement : PRINT LPAREN expression RPAREN SEMICOLON"""
         production[0] = ASTNode("Print", children=[production[3]])
+
+    def p_goto_statement(self, production) -> None:
+        """goto_statement : GOTO IDENTIFIER SEMICOLON"""
+        production[0] = ASTNode("Goto", value=production[2])
+
+    def p_label_statement(self, production) -> None:
+        """label_statement : IDENTIFIER COLON"""
+        production[0] = ASTNode("Label", value=production[1])
 
     def p_if_statement(self, production) -> None:
         """if_statement : IF LPAREN expression RPAREN block
@@ -232,6 +246,9 @@ class CompilerParser:
             if node.type == "Empty":
                 return
 
+            if node.type == "Goto" or node.type == "Label":
+                return
+
             if node.type == "IF":
                 validate_expression(node.children[0])
                 validate_statement(node.children[1])
@@ -286,6 +303,12 @@ class CompilerParser:
         sanitized_children = [self._sanitize_ast(child) for child in node.children]
         node.children = sanitized_children
         return node
+
+    def _declaration_result(self, declarations: list[ASTNode]) -> ASTNode:
+        """Return a single declaration or a Block for comma declarations."""
+        if len(declarations) == 1:
+            return declarations[0]
+        return ASTNode("Block", children=declarations)
 
 
 if __name__ == "__main__":

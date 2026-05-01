@@ -25,6 +25,7 @@ RESERVED_KEYWORDS = {
     "else": "ELSE",
     "while": "WHILE",
     "for": "FOR",
+    "goto": "GOTO",
     "print": "PRINT",
 }
 
@@ -44,6 +45,8 @@ PLY_TOKENS = (
     "TIMES",
     "DIVIDE",
     "ASSIGN",
+    "COMMA",
+    "COLON",
     "SEMICOLON",
     "LPAREN",
     "RPAREN",
@@ -66,6 +69,8 @@ t_MINUS = r"-"
 t_TIMES = r"\*"
 t_DIVIDE = r"/"
 t_ASSIGN = r"="
+t_COMMA = r","
+t_COLON = r":"
 t_SEMICOLON = r";"
 t_LPAREN = r"\("
 t_RPAREN = r"\)"

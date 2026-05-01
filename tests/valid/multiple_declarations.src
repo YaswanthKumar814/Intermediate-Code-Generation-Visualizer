@@ -1,0 +1,4 @@
+int x = 5, y;
+int z, w = 2;
+y = x + w;
+print(y);

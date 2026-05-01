@@ -37,6 +37,8 @@ class TACOptimizer:
     def _optimize_straight_line(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
         """Apply the full optimization pipeline to linear TAC only."""
         optimized = self.constant_folding(instructions)
+        optimized = self.copy_propagation(optimized)
+        optimized = self.strength_reduction(optimized)
         optimized = self.common_subexpression_elimination(optimized)
         optimized = self.dead_code_elimination(optimized)
         return optimized
@@ -69,13 +71,64 @@ class TACOptimizer:
             left = self._resolve_operand(instruction.arg1, constants)
             right = self._resolve_operand(instruction.arg2, constants)
 
-            if self._is_number(left) and self._is_number(right):
+            if (
+                instruction.operator in self.ARITHMETIC_OPS
+                and self._is_number(left)
+                and self._is_number(right)
+            ):
                 result = self._evaluate(left, instruction.operator, right)
                 optimized.append(TACInstruction(instruction.target, result))
                 constants[instruction.target] = result
             else:
                 optimized.append(TACInstruction(instruction.target, left, instruction.operator, right))
                 constants.pop(instruction.target, None)
+
+        return optimized
+
+    def copy_propagation(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
+        """Replace uses of simple copies with their original source when local and safe."""
+        copies: Dict[str, str] = {}
+        optimized: List[TACInstruction] = []
+
+        for instruction in instructions:
+            if instruction.operator in self.CONTROL_FLOW_OPS:
+                optimized.append(instruction)
+                copies.clear()
+                continue
+
+            if instruction.target == "print":
+                optimized.append(TACInstruction("print", self._resolve_copy(instruction.arg1, copies)))
+                continue
+
+            self._invalidate_copies(copies, instruction.target)
+
+            if instruction.operator is None:
+                value = self._resolve_copy(instruction.arg1, copies)
+                optimized.append(TACInstruction(instruction.target, value))
+                if isinstance(value, str) and value != instruction.target:
+                    copies[instruction.target] = value
+                continue
+
+            left = self._resolve_copy(instruction.arg1, copies)
+            right = self._resolve_copy(instruction.arg2, copies)
+            optimized.append(TACInstruction(instruction.target, left, instruction.operator, right))
+
+        return optimized
+
+    def strength_reduction(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
+        """Replace simple multiplication-by-two operations with addition."""
+        optimized: List[TACInstruction] = []
+
+        for instruction in instructions:
+            if instruction.operator == "*" and instruction.arg2 == 2:
+                optimized.append(TACInstruction(instruction.target, instruction.arg1, "+", instruction.arg1))
+                continue
+
+            if instruction.operator == "*" and instruction.arg1 == 2:
+                optimized.append(TACInstruction(instruction.target, instruction.arg2, "+", instruction.arg2))
+                continue
+
+            optimized.append(instruction)
 
         return optimized
 
@@ -126,6 +179,10 @@ class TACOptimizer:
                 optimized.append(instruction)
                 continue
 
+            if instruction.operator not in self.ARITHMETIC_OPS:
+                optimized.append(instruction)
+                continue
+
             expression_key = self._expression_key(
                 instruction.arg1, instruction.operator, instruction.arg2
             )
@@ -144,6 +201,27 @@ class TACOptimizer:
         if isinstance(operand, str) and operand in constants:
             return constants[operand]
         return operand
+
+    def _resolve_copy(self, operand: Any, copies: Dict[str, str]) -> Any:
+        """Resolve a copied variable to its current local source."""
+        seen: Set[str] = set()
+        while isinstance(operand, str) and operand in copies and operand not in seen:
+            seen.add(operand)
+            operand = copies[operand]
+        return operand
+
+    def _invalidate_copies(self, copies: Dict[str, str], assigned_name: str) -> None:
+        """Remove local copies made stale by an assignment."""
+        if assigned_name == "print":
+            return
+
+        stale_names = [
+            name
+            for name, source in copies.items()
+            if name == assigned_name or source == assigned_name
+        ]
+        for name in stale_names:
+            copies.pop(name, None)
 
     def _used_names(self, instruction: TACInstruction) -> Set[str]:
         """Collect variable-like operands used by an instruction."""
@@ -246,6 +324,8 @@ class TACOptimizer:
 
         middle = block[middle_start:middle_end]
         optimized_middle = self.constant_folding(middle)
+        optimized_middle = self.copy_propagation(optimized_middle)
+        optimized_middle = self.strength_reduction(optimized_middle)
         optimized_middle = self.common_subexpression_elimination(optimized_middle)
         # Dead-code elimination is intentionally skipped here because values can
         # remain live across successor blocks reached through jumps.

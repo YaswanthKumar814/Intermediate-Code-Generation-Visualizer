@@ -1,0 +1,5 @@
+int x = 1;
+goto done;
+x = 2;
+done:
+print(x);

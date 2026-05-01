@@ -40,5 +40,53 @@
     "optimized_tac_contains": [
       "print = 22"
     ]
+  },
+  {
+    "name": "valid_goto_label",
+    "path": "valid/goto_label.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "goto done",
+      "done:",
+      "print = x"
+    ]
+  },
+  {
+    "name": "valid_multiple_declarations",
+    "path": "valid/multiple_declarations.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = 7"
+    ]
+  },
+  {
+    "name": "valid_constant_propagation",
+    "path": "valid/constant_propagation.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = 7"
+    ]
+  },
+  {
+    "name": "valid_copy_propagation",
+    "path": "valid/copy_propagation.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "print = a"
+    ]
+  },
+  {
+    "name": "valid_strength_reduction",
+    "path": "valid/strength_reduction.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "t1 = a + a"
+    ]
+  },
+  {
+    "name": "invalid_multiple_declaration_redeclaration",
+    "path": "invalid/multiple_declaration_redeclaration.src",
+    "expected": "error",
+    "error_contains": "Semantic Error: Variable 'x' redeclared"
   }
 ]

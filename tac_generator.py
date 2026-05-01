@@ -98,6 +98,14 @@ class TACGenerator:
             self.emit("print", value)
             return
 
+        if node.type == "Label":
+            self.emit(node.value, None, "label")
+            return
+
+        if node.type == "Goto":
+            self.emit("", node.value, "goto")
+            return
+
         if node.type == "Block":
             for statement in node.children:
                 self._generate_statement(statement)
