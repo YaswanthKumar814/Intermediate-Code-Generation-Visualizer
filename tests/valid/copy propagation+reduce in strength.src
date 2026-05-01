@@ -1,0 +1,8 @@
+// TEST 1: constant propagation + copy propagation + strength reduction
+
+int a = 5;
+int b = a;
+int c = b * 2;
+int d = c + 3;
+
+print(d);

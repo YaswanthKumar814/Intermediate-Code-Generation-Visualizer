@@ -1,0 +1,126 @@
+// Abstract Syntax Tree
+digraph {
+	rankdir=TB
+	node [fillcolor=lightyellow shape=box style="rounded,filled"]
+	node_0 [label=Program]
+	node_1 [label="VarDecl
+(a)"]
+	node_2 [label="Number
+(5)"]
+	node_1 -> node_2
+	node_0 -> node_1
+	node_3 [label="VarDecl
+(b)"]
+	node_4 [label="Number
+(3)"]
+	node_3 -> node_4
+	node_0 -> node_3
+	node_5 [label=IF]
+	node_6 [label="BinOp
+(>)"]
+	node_7 [label="Identifier
+(a)"]
+	node_6 -> node_7
+	node_8 [label="Identifier
+(b)"]
+	node_6 -> node_8
+	node_5 -> node_6
+	node_9 [label=Block]
+	node_10 [label=Print]
+	node_11 [label="Identifier
+(a)"]
+	node_10 -> node_11
+	node_9 -> node_10
+	node_5 -> node_9
+	node_0 -> node_5
+	node_12 [label=IF]
+	node_13 [label="BinOp
+(<)"]
+	node_14 [label="Identifier
+(a)"]
+	node_13 -> node_14
+	node_15 [label="Number
+(10)"]
+	node_13 -> node_15
+	node_12 -> node_13
+	node_16 [label=Block]
+	node_17 [label=Print]
+	node_18 [label="Identifier
+(a)"]
+	node_17 -> node_18
+	node_16 -> node_17
+	node_12 -> node_16
+	node_0 -> node_12
+	node_19 [label=IF]
+	node_20 [label="BinOp
+(==)"]
+	node_21 [label="Identifier
+(a)"]
+	node_20 -> node_21
+	node_22 [label="Number
+(5)"]
+	node_20 -> node_22
+	node_19 -> node_20
+	node_23 [label=Block]
+	node_24 [label=Print]
+	node_25 [label="Identifier
+(a)"]
+	node_24 -> node_25
+	node_23 -> node_24
+	node_19 -> node_23
+	node_0 -> node_19
+	node_26 [label=IF]
+	node_27 [label="BinOp
+(!=)"]
+	node_28 [label="Identifier
+(a)"]
+	node_27 -> node_28
+	node_29 [label="Identifier
+(b)"]
+	node_27 -> node_29
+	node_26 -> node_27
+	node_30 [label=Block]
+	node_31 [label=Print]
+	node_32 [label="Identifier
+(a)"]
+	node_31 -> node_32
+	node_30 -> node_31
+	node_26 -> node_30
+	node_0 -> node_26
+	node_33 [label=IF]
+	node_34 [label="BinOp
+(>=)"]
+	node_35 [label="Identifier
+(a)"]
+	node_34 -> node_35
+	node_36 [label="Number
+(5)"]
+	node_34 -> node_36
+	node_33 -> node_34
+	node_37 [label=Block]
+	node_38 [label=Print]
+	node_39 [label="Identifier
+(a)"]
+	node_38 -> node_39
+	node_37 -> node_38
+	node_33 -> node_37
+	node_0 -> node_33
+	node_40 [label=IF]
+	node_41 [label="BinOp
+(<=)"]
+	node_42 [label="Identifier
+(b)"]
+	node_41 -> node_42
+	node_43 [label="Number
+(3)"]
+	node_41 -> node_43
+	node_40 -> node_41
+	node_44 [label=Block]
+	node_45 [label=Print]
+	node_46 [label="Identifier
+(b)"]
+	node_45 -> node_46
+	node_44 -> node_45
+	node_40 -> node_44
+	node_0 -> node_40
+}

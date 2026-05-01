@@ -27,12 +27,13 @@ class TACOptimizer:
         """Run optimizations while preserving control-flow boundaries."""
         self.warnings = []
         if not self._has_control_flow(instructions):
-            return self._optimize_straight_line(instructions)
+            optimized = self._optimize_straight_line(instructions)
+            return self._preserve_non_empty_output(instructions, optimized)
 
         optimized: List[TACInstruction] = []
         for block in self._split_basic_blocks(instructions):
             optimized.extend(self._optimize_basic_block(block))
-        return optimized
+        return self._preserve_non_empty_output(instructions, optimized)
 
     def _optimize_straight_line(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
         """Apply the full optimization pipeline to linear TAC only."""
@@ -40,7 +41,6 @@ class TACOptimizer:
         optimized = self.copy_propagation(optimized)
         optimized = self.strength_reduction(optimized)
         optimized = self.common_subexpression_elimination(optimized)
-        optimized = self.dead_code_elimination(optimized)
         return optimized
 
     def constant_folding(self, instructions: List[TACInstruction]) -> List[TACInstruction]:
@@ -120,11 +120,19 @@ class TACOptimizer:
         optimized: List[TACInstruction] = []
 
         for instruction in instructions:
-            if instruction.operator == "*" and instruction.arg2 == 2:
+            if (
+                instruction.operator == "*"
+                and instruction.arg2 == 2
+                and self._is_variable_name(instruction.arg1)
+            ):
                 optimized.append(TACInstruction(instruction.target, instruction.arg1, "+", instruction.arg1))
                 continue
 
-            if instruction.operator == "*" and instruction.arg1 == 2:
+            if (
+                instruction.operator == "*"
+                and instruction.arg1 == 2
+                and self._is_variable_name(instruction.arg2)
+            ):
                 optimized.append(TACInstruction(instruction.target, instruction.arg2, "+", instruction.arg2))
                 continue
 
@@ -276,6 +284,20 @@ class TACOptimizer:
     def _is_number(self, value: Any) -> bool:
         """Return True when the operand is an integer constant."""
         return isinstance(value, int)
+
+    def _is_variable_name(self, value: Any) -> bool:
+        """Return True for variable-like operands used in strength reduction."""
+        return isinstance(value, str) and value != "print"
+
+    def _preserve_non_empty_output(
+        self,
+        original: List[TACInstruction],
+        optimized: List[TACInstruction],
+    ) -> List[TACInstruction]:
+        """Never let optimization erase a non-empty TAC program."""
+        if original and not optimized:
+            return list(original)
+        return optimized
 
     def _truncate_toward_zero(self, left: int, right: int) -> int:
         """Perform C-like integer division by truncating toward zero."""

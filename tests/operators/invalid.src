@@ -1,0 +1,7 @@
+// Testing: syntax error detection
+
+int a = 5;
+
+if (a > ) {
+    print(a);
+}

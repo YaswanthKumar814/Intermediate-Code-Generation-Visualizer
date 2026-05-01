@@ -1,0 +1,12 @@
+// Testing: && and || evaluation
+
+int a = 5;
+int b = 3;
+
+if (a > 2 && b < 5) {
+    print(a);
+}
+
+if (a == 0 || b == 3) {
+    print(b);
+}

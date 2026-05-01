@@ -1,0 +1,10 @@
+// Testing: logical condition inside loop
+
+int a = 3;
+int b = 2;
+
+while (a > 0 && b > 0) {
+    print(a);
+    a = a - 1;
+    b = b - 1;
+}

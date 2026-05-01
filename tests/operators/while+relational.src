@@ -1,0 +1,8 @@
+// Testing: relational inside loop condition
+
+int a = 3;
+
+while (a > 0) {
+    print(a);
+    a = a - 1;
+}

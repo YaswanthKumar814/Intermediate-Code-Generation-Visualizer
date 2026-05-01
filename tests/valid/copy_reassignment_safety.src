@@ -1,0 +1,6 @@
+int a = 5;
+int b;
+int c;
+b = a;
+a = 10;
+c = b + 2;

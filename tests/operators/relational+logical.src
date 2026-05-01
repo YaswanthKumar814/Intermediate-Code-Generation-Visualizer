@@ -1,0 +1,9 @@
+// Testing: combination of relational + logical
+
+int a = 5;
+int b = 3;
+int c = 2;
+
+if (a > b && b > c) {
+    print(a);
+}

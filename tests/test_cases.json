@@ -88,5 +88,31 @@
     "path": "invalid/multiple_declaration_redeclaration.src",
     "expected": "error",
     "error_contains": "Semantic Error: Variable 'x' redeclared"
+  },
+  {
+    "name": "valid_constant_propagation_no_print",
+    "path": "valid/constant_propagation_no_print.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "c = 7"
+    ]
+  },
+  {
+    "name": "valid_copy_reassignment_safety",
+    "path": "valid/copy_reassignment_safety.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "a = 10",
+      "c = 7"
+    ]
+  },
+  {
+    "name": "valid_strength_reduction_no_print",
+    "path": "valid/strength_reduction_no_print.src",
+    "expected": "success",
+    "optimized_tac_contains": [
+      "t1 = a + a",
+      "b = t1"
+    ]
   }
 ]
